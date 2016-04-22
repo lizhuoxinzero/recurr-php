@@ -116,29 +116,29 @@ foreach($ret as $v) {
 ### Recurr构造函数
 
 提交参数 | 类型 | 描述 |
-------|
-start | double | 日程开始时间戳 |
-end | double | 日程结束时间戳 |
-freq | enum | 日程重复视频(默认为WEEKLY) |
-interval | int | 日程重复间隔(默认为) |
-until | double | 日程结束时间戳(默认为) |
-monthfix | enum | 月底修复方式(默认为) |
+--|--|----|
+start    | double | 日程开始时间戳           |
+end      | double | 日程结束时间戳           |
+freq     | enum   | 日程重复视频(默认为WEEKLY) |
+interval | int    | 日程重复间隔(默认为)       |
+until    | double | 日程结束时间戳(默认为)      |
+monthfix | enum   | 月底修复方式(默认为)       |
 
 ### Recurr->setExDates([]double stamps, byday bool) -> bool
 
 设置例外时间
 
 提交参数 | 类型 | 描述 |
-------|
+--|---|----|
 stamps | []double | 例外时间戳(必须从小到大排序) |
-byday | bool | 以天进行匹配(默认为true) |
+byday  | bool | 以天进行匹配(默认为true) |
 
 ### Recurr->dump() -> array()
 
 以array的形式返回Recurr的信息。
 
 数组key    | 类型     | 描述       |
---         | -        | ---        |
+-----------|----------|------------|
 start      | double   | 第一次开始时间戳 |
 end        | double   | 第一次结束时间戳 |
 until      | double   | 结束时间戳    |
@@ -153,7 +153,7 @@ exdates    | []double | 例外时间     |
 计算区间时间内的重复日程，返回所有重复日程的开始时间戳
 
 提交参数 | 类型   | 描述 |
--------- | ------ | ---- |
+---------|--------|------|
 after    | double | 时间戳区间左 |
 before   | double | 时间戳区间右 |
 limit    | double | 限制条数(默认为1) |
