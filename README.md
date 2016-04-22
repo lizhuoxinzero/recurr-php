@@ -152,8 +152,8 @@ exdates | []double | 例外时间 |
 
 计算区间时间内的重复日程，返回所有重复日程的开始时间戳
 
-提交参数 | 类型 | 描述 |
-------|
-after | double | 时间戳区间左 |
-before | double | 时间戳区间右 |
-limit | double | 限制条数(默认为1) |
+| 提交参数 | 类型 | 描述 |
+|------|
+| after | double | 时间戳区间左 |
+| before | double | 时间戳区间右 |
+| limit | double | 限制条数(默认为1) |
