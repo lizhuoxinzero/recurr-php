@@ -137,23 +137,23 @@ byday | bool | 以天进行匹配(默认为true) |
 
 以array的形式返回Recurr的信息。
 
-数组key | 类型 | 描述 |
-------|
-start | double | 第一次开始时间戳 |
-end | double | 第一次结束时间戳 |
-until | double | 结束时间戳 |
-freq | int | 频率 |
-interval | int | 间隔 |
-monthfix | int | 月末修复方式 |
-exbyday | bool | 例外时间处理方式 |
-exdates | []double | 例外时间 |
+数组key    | 类型     | 描述       |
+--         | -        | ---        |
+start      | double   | 第一次开始时间戳 |
+end        | double   | 第一次结束时间戳 |
+until      | double   | 结束时间戳    |
+freq       | int      | 频率       |
+interval   | int      | 间隔       |
+monthfix   | int      | 月末修复方式   |
+exbyday    | bool     | 例外时间处理方式 |
+exdates    | []double | 例外时间     |
 
 ### Recurr->constraint(after double, before double, limit int) -> array()
 
 计算区间时间内的重复日程，返回所有重复日程的开始时间戳
 
 提交参数 | 类型   | 描述 |
----------|--------|------|
+-------- | ------ | ---- |
 after    | double | 时间戳区间左 |
 before   | double | 时间戳区间右 |
 limit    | double | 限制条数(默认为1) |
