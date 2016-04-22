@@ -12,8 +12,8 @@
 #include "recurr.h"
 
 const int Second = 1;
-const int Minute = 60 * Second;
-const int Hour   = 60 * Minute;
+const int Minute = 60;
+const int Hour   = 3600;
 //const datetime_t NOFUTURE = ((__int64_t)(1)<<63) - 1;
 //const datetime_t NOHISTORY = (__int64_t)(-1) << 63;
 const datetime_t NOHISTORY = 0x8000000000000000LL;
@@ -21,8 +21,8 @@ const datetime_t NOFUTURE  = 0x7FFFFFFFffffffffLL;
 
 const int secondsPerMinute = 60;
 const int secondsPerHour   = 60 * 60;
-const int secondsPerDay    = 24 * secondsPerHour;
-const int secondsPerWeek   = 7 * secondsPerDay;
+const int secondsPerDay    = 24 * 3600;
+const int secondsPerWeek   = 7 * 86400;
 const int daysPer400Years  = 365*400 + 97;
 const int daysPer100Years  = 365*100 + 24;
 const int daysPer4Years    = 365*4 + 1;
@@ -30,10 +30,10 @@ const int daysPer4Years    = 365*4 + 1;
 const __int64_t absoluteZeroYear = -292277022399LL;
 const int internalYear = 1;
 const int unixYear = 1970;
-const __int64_t absoluteToInternal = (__int64_t)((absoluteZeroYear - internalYear) * 365.2425) * secondsPerDay; // fix
-const __int64_t internalToAbsolute = -absoluteToInternal;
-const __int64_t unixToInternal = (__int64_t)(1969*365 + 1969/4 - 1969/100 + 1969/400) * secondsPerDay;
-const __int64_t internalToUnix = -unixToInternal;
+const __int64_t absoluteToInternal = -9223371966579724800LL; //(__int64_t)((absoluteZeroYear - internalYear) * 365.2425) * secondsPerDay; // fix
+const __int64_t internalToAbsolute = 9223371966579724800LL; //-absoluteToInternal;
+const __int64_t unixToInternal = 62135596800;//(__int64_t)(1969*365 + 1969/4 - 1969/100 + 1969/400) * secondsPerDay;
+const __int64_t internalToUnix = -62135596800;//-unixToInternal;
 
 const int daysBefore[] = {
     0,

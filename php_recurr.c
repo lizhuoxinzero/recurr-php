@@ -10,7 +10,8 @@
 \**********************************************************/
 
 #include "php_recurr.h"
-#include "ext/standard/info.h" /* for phpinfo() functions */
+
+#include "php.h"
 
 #if defined(_MSC_VER)
 #include "win32/php_stdint.h"
@@ -73,15 +74,9 @@
 #endif
 #endif
 
-#if PHP_MAJOR_VERSION < 7
 typedef int length_t;
 #define __RETURN_STRINGL(s, l) RETURN_STRINGL(s, l, 0)
 #define __add_assoc_string(arg, key, str) add_assoc_string(arg, key, str, 1)
-#else
-typedef size_t length_t;
-#define __RETURN_STRINGL(s, l) RETVAL_STRINGL(s, l); efree(s); return;
-#define __add_assoc_string(arg, key, str) add_assoc_string(arg, key, str)
-#endif
 
 #define MX (((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (key[(p & 3) ^ e] ^ z))
 #define DELTA 0x9e3779b9
@@ -132,9 +127,9 @@ ZEND_END_ARG_INFO()
 
 static zend_object_handlers recurr_object_handlers_recurr;
 
-static zend_object *recurr_object_new_recurr(zend_class_entry *class_type);
+static zend_object_value recurr_object_new_recurr(zend_class_entry *class_type TSRMLS_DC);
+static zend_object_value recurr_object_clone_recurr(zval *this_ptr TSRMLS_DC);
 static void recurr_object_free_storage_recurr(zend_object *object);
-static zend_object *recurr_object_clone_recurr(zval *this_ptr);
 //static HashTable *recurr_object_get_gc(zval *object, zval **table, int *n);
 //
 
@@ -187,11 +182,8 @@ ZEND_MINIT_FUNCTION(recurr) {
 
     INIT_CLASS_ENTRY(ce, "Recurr", recurr_method);
     ce.create_object = recurr_object_new_recurr;
-    recurr_ce = zend_register_internal_class_ex(&ce, NULL);
-
+    recurr_ce = zend_register_internal_class_ex(&ce, NULL, NULL TSRMLS_CC);
     memcpy(&recurr_object_handlers_recurr, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    recurr_object_handlers_recurr.offset = XtOffsetOf(php_recurr_obj, std);
-    recurr_object_handlers_recurr.free_obj = recurr_object_free_storage_recurr;
     recurr_object_handlers_recurr.clone_obj = recurr_object_clone_recurr;
     //zend_declare_property_double(yar_client_ce, ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_HTTP, ZEND_ACC_PROTECTED TSRMLS_CC);
 
@@ -209,33 +201,34 @@ ZEND_MINIT_FUNCTION(recurr) {
     return SUCCESS;
 }
 
-static inline zend_object *recurr_object_new_recurr_ex(zend_class_entry *class_type, int init_props) /* {{{ */
-{
+static inline zend_object_value recurr_object_new_recurr_ex(zend_class_entry *class_type, php_recurr_obj **ptr TSRMLS_DC) {
     php_recurr_obj *intern;
-
-    intern = ecalloc(1, sizeof(php_recurr_obj) + zend_object_properties_size(class_type));
+    zend_object_value retval;
+    intern = ecalloc(1, sizeof(php_recurr_obj));
+    memset(intern, 0, sizeof(php_recurr_obj));
+    if (ptr) {
+        *ptr = intern;
+    }
 
     zend_object_std_init(&intern->std, class_type);
-    if (init_props) {
-        object_properties_init(&intern->std, class_type);
-    }
-    intern->std.handlers = &recurr_object_handlers_recurr;
-    memset(&(intern->rule.exdates), 0, sizeof(intern->rule.exdates));
-
-    return &intern->std;
+    object_properties_init(&intern->std, class_type);
+    retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t)zend_objects_destroy_object, (zend_objects_free_object_storage_t)recurr_object_free_storage_recurr, NULL TSRMLS_CC);
+    retval.handlers = &recurr_object_handlers_recurr;
+    return retval;
 }
 
-static zend_object *recurr_object_new_recurr(zend_class_entry *class_type) /* {{{ */
+static zend_object_value recurr_object_new_recurr(zend_class_entry *class_type TSRMLS_DC) /* {{{ */
 {
-    return recurr_object_new_recurr_ex(class_type, 1);
+    return recurr_object_new_recurr_ex(class_type, NULL TSRMLS_CC);
 }
 
-static zend_object *recurr_object_clone_recurr(zval *this_ptr) /* {{{ */
+static zend_object_value recurr_object_clone_recurr(zval *this_ptr TSRMLS_DC) /* {{{ */
 {
     php_recurr_obj *old_obj = Z_PHPRECURR_P(this_ptr);
-    php_recurr_obj *new_obj = php_recurr_obj_from_obj(recurr_object_new_recurr_ex(old_obj->std.ce, 0));
+    php_recurr_obj *new_obj = NULL;
+    zend_object_value new_ov = recurr_object_new_recurr_ex(old_obj->std.ce, &new_obj TSRMLS_CC);
 
-    zend_objects_clone_members(&new_obj->std, &old_obj->std);
+    zend_objects_clone_members(&new_obj->std, new_ov, &old_obj->std, Z_OBJ_HANDLE_P(this_ptr) TSRMLS_CC);
 
     memcpy(&(new_obj->rule), &(old_obj->rule), sizeof(rule_t));
     if (old_obj->rule.exdates.dates) {
@@ -243,8 +236,9 @@ static zend_object *recurr_object_clone_recurr(zval *this_ptr) /* {{{ */
         memcpy(new_obj->rule.exdates.dates, old_obj->rule.exdates.dates, sizeof(datetime_t)*old_obj->rule.exdates.size);
     }
 
-    return &new_obj->std;
+    return new_ov;
 } /* }}} */
+
 
 static void recurr_object_free_storage_recurr(zend_object *object) /* {{{ */
 {
@@ -330,7 +324,7 @@ PHP_METHOD(Recurr, __construct)
 {
     double start, end = 0, until = 1<32;
     long freq = WEEKLY, interval = 1, monthfix = UseLastDay;
-    if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "d|dlldl", &start, &end, &freq, &interval, &until, &monthfix)) {
+    if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "d|dlldl", &start, &end, &freq, &interval, &until, &monthfix)) {
         return;
     }
 
@@ -346,7 +340,6 @@ PHP_METHOD(Recurr, __construct)
     rule->interval = interval;
     rule->until = sdt_unix((__int64_t)until);
     rule->monthfix = monthfix;
-    //php_date_initialize(, time_str, time_str_len, NULL, timezone_object, 1);
 }
 /* }}} */
 
@@ -357,12 +350,12 @@ PHP_METHOD(Recurr, setExDates)
     rule_t *rule = &(pr->rule);
 
     zend_bool byday = 1;
-    zval *dates, *data;
+    zval *dates, **data;
     HashTable *dates_hash;
     HashPosition pointer;
     int dates_count;
 
-    if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "a|b", &dates, &byday)) {
+    if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|b", &dates, &byday)) {
         return;
     }
 
@@ -371,14 +364,16 @@ PHP_METHOD(Recurr, setExDates)
 
     datetime_t *eds, *pe;
     pe = eds = emalloc(sizeof(datetime_t)*dates_count);
-
-    for(zend_hash_internal_pointer_reset_ex(dates_hash, &pointer); (data = zend_hash_get_current_data_ex(dates_hash, &pointer)); zend_hash_move_forward_ex(dates_hash, &pointer)) {
-        zval ztmp = *data;
+    zend_hash_internal_pointer_reset_ex(dates_hash, &pointer);
+    while (SUCCESS == zend_hash_get_current_data_ex(dates_hash, (void**)&data, &pointer)) {
+        zval ztmp = **data;
         zval_copy_ctor(&ztmp);
         convert_to_double(&ztmp);
         //if (Z_TYPE(ztmp) == IS_DOUBLE)
         double t = Z_DVAL(ztmp);
         *pe++ = sdt_unix((__int64_t)t);
+
+        zend_hash_move_forward_ex(dates_hash, &pointer);
     }
 
     rule->exdates.dates = eds;
@@ -430,7 +425,7 @@ PHP_METHOD(Recurr, constraint)
     double dafter = rule->start;
     double dbefore = rule->end;
     int limit = 1;
-    if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "|ddl", &dafter, &dbefore, &limit)) {
+    if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ddl", &dafter, &dbefore, &limit)) {
         return;
     }
 
