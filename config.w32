@@ -1,0 +1,5 @@
+ARG_ENABLE("recurr", "recurr support", "no");
+
+if (PHP_recurr != "no") {
+    EXTENSION("recurr", "php_recurr.c");
+}
