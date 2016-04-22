@@ -116,7 +116,7 @@ foreach($ret as $v) {
 ### Recurr构造函数
 
 提交参数 | 类型 | 描述 |
---|--|----|
+---------|------|------|
 start    | double | 日程开始时间戳           |
 end      | double | 日程结束时间戳           |
 freq     | enum   | 日程重复视频(默认为WEEKLY) |
@@ -128,10 +128,10 @@ monthfix | enum   | 月底修复方式(默认为)       |
 
 设置例外时间
 
-提交参数 | 类型 | 描述 |
---|---|----|
-stamps | []double | 例外时间戳(必须从小到大排序) |
-byday  | bool | 以天进行匹配(默认为true) |
+提交参数 | 类型     | 描述 |
+---------|----------|------|
+stamps   | []double | 例外时间戳(必须从小到大排序) |
+byday    | bool     | 以天进行匹配(默认为true) |
 
 ### Recurr->dump() -> array()
 
