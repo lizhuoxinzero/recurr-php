@@ -18,6 +18,7 @@
 
 #include "php.h"
 #include "recurr.h"
+#include "datemap.h"
 
 extern zend_module_entry recurr_module_entry;
 #define phpext_recurr_ptr &recurr_module_entry

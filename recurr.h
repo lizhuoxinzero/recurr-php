@@ -64,6 +64,10 @@ enum {
     //NoThisSchedule
     UseLastDay,
 };
+enum {
+    Solar = 0,
+    Lunar,
+};
 
 typedef enum {
     SECONDLY = 0,
@@ -89,6 +93,7 @@ struct rule_s {
     datetime_t  until;
     timeclude_t exdates;
     int         monthfix;
+    int         lunarflag;
 };
 typedef struct rule_s rule_t;
 

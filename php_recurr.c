@@ -103,6 +103,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_recurr_construct, 0, 0, 0)
     ZEND_ARG_INFO(0, freq)
     ZEND_ARG_INFO(0, interval)
     ZEND_ARG_INFO(0, until)
+    ZEND_ARG_INFO(0, lunarflag)
     ZEND_ARG_INFO(0, monthfix)
 ZEND_END_ARG_INFO()
 
@@ -323,8 +324,8 @@ ZEND_FUNCTION(recurr_datetime) {
 PHP_METHOD(Recurr, __construct)
 {
     double start, end = 0, until = 1<32;
-    long freq = WEEKLY, interval = 1, monthfix = UseLastDay;
-    if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "d|dlldl", &start, &end, &freq, &interval, &until, &monthfix)) {
+    long freq = WEEKLY, interval = 1, monthfix = UseLastDay, lunarflag = Solar;
+    if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "d|dlldll", &start, &end, &freq, &interval, &until, &lunarflag, &monthfix)) {
         return;
     }
 
@@ -339,6 +340,7 @@ PHP_METHOD(Recurr, __construct)
     rule->freq = freq;
     rule->interval = interval;
     rule->until = sdt_unix((__int64_t)until);
+    rule->lunarflag = lunarflag;
     rule->monthfix = monthfix;
 }
 /* }}} */
@@ -470,33 +472,84 @@ void rule_constraint(zval *rv, rule_t *r, datetime_t after, datetime_t before, i
         }
     } else {
         int ay = 0, am = 0;
-        datetime_t rc = r->start;
-        datetime_t src = rc;
-        while (rc < before && limit != 0) {
-            if (r->freq == MONTHLY) {
-                am += r->interval;
-            } else if (r->freq == YEARLY) {
-                ay += r->interval;
-            }
+        datetime_t rc = r->start;//日程开始时间
+        int year, month, day;
+        dt_date(rc, &year, &month, &day);
+        __int64_t dsecond = rc % 86400;
 
-            datetime_t rcend = rc + duration;
-            if (rc >= after && rcend <= before) {
-                if (!tc_isexclude(&(r->exdates), rc)) {
-                    add_next_index_double(rv, dt_unix(rc)); //  set rc -> rcend
-                    add_next_index_double(rv, dt_unix(rc));
-                    limit--;
+        if( r->lunarflag == Solar) {
+            while (rc < before && limit != 0) {//在范围内
+                if (r->freq == MONTHLY) {
+                    am += r->interval;      //月加一
+                } else if (r->freq == YEARLY) {
+                    ay += r->interval;      //年加一
                 }
-            } else {
-                break;
+    
+                datetime_t rcend = rc + duration;//本次循环的日程结束时间戳
+                if (rc >= after && rcend <= before) {//日程在范围内，（日程的整个范围在里面）
+                    if (!tc_isexclude(&(r->exdates), rc)) {//是否期望去掉的
+                        add_next_index_double(rv, dt_unix(rc)); //  set rc -> rcend
+                        limit--;
+                    }
+                } else {
+                    break;
+                }
+    
+                
+                datetime_t rt = sdt_datefix(year+ay, month+am, day, r->monthfix);//将日期粗暴变化进行修复
+    
+                rt += dsecond;
+    
+                rc = rt;
             }
+        } else {//农历版
+            triger_result_t triger_result;
+            triger_result.leapstamp = 0;
+            php_printf("Hello World!\n");
+            while (rc < before && limit != 0) {//在范围内
+                php_printf("while!\n");
+                if (r->freq == MONTHLY) {
+                    am += r->interval;      //月加一
+                } else if (r->freq == YEARLY) {
+                    ay += r->interval;      //年加一
+                }
+    
+                datetime_t rcend = rc + duration;//本次循环的日程结束时间戳
+                php_printf("rc:%ld after:%ld rcend:%ld before:%ld\n", (long)rc, (long)after, (long)rcend, (long)before);
+                if (rc >= after && rcend <= before) {//日程在范围内，（日程的整个范围在里面）
+                        php_printf("add1!\n");
+                    if (!tc_isexclude(&(r->exdates), rc)) {//是否期望去掉的
+                        add_next_index_double(rv, dt_unix(rc)); //  set rc -> rcend
+                        limit--;
+                        //判断是否为年间隔，且leapstamp是否不为0，如有则增加闰月的触发
+                        if (r->freq == YEARLY && triger_result.leapstamp != 0) {
+                            rc = sdt_unix(triger_result.leapstamp);
+                            if (rc >= after && rcend <= before) {//日程在范围内，（日程的整个范围在里面）
+                                if (!tc_isexclude(&(r->exdates), rc)) {//是否期望去掉的
+                                    add_next_index_double(rv, dt_unix(rc)); //  set rc -> rcend
+                                    limit--;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+    
+                
+                if (r->freq == YEARLY ){
+                    add_lunaryear(year, month, day, ay, &triger_result);
+                    php_printf("triger:%ld second:%ld\n", triger_result.stamp, dsecond);
+                    triger_result.stamp += dsecond;
+                    if( triger_result.leapstamp != 0){
+                        triger_result.leapstamp += dsecond;
+                    }
+                    rc = sdt_unix(triger_result.stamp);
+                }else if(r->freq == MONTHLY) {
 
-            int year, month, day;
-            dt_date(src, &year, &month, &day);
-            __int64_t dsecond = src % 86400;
-            datetime_t rt = sdt_datefix(year+ay, month+am, day, r->monthfix);
-            rt += dsecond;
-
-            rc = rt;
+                }
+    
+            }
         }
     }
 }

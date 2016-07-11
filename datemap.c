@@ -393,6 +393,14 @@ int lunar_to_solar(int year, int month, int day, int isleap, solar_data_t *pSola
 }
 
 
+__int64_t lunar_to_stamp(int year, int month, int day, int isleap) {
+    __int64_t timestamp = ltos_map[year-MIN_YEAR][getIndex(year, month, isleap)];
+    timestamp += DAYTIME * (day - 1);
+        
+    return timestamp;
+}
+
+
 /**************************
 *公历转农历 *注意：由于闰12月本人有生之年碰不上，故假设没有这事
 *@year 年
@@ -443,5 +451,72 @@ int solar_to_lunar(int year, int month, int day, lunar_data_t *pLunarData) {
     return 0;
 }
 
+/**************************************
+*公历年月日添加年份
+*@year、month、day 原时间的公历年月日
+*@addyear_cnt 添加的年分
+*@return 返回更新后的时间戳
+****************************************/
+__int64_t add_lunaryear(int year, int month, int day, int addyear_cnt, triger_result_t *triger_result) {
+    triger_result->leapstamp = 0;
+    
+//int solar_to_lunar(int year, int month, int day, lunar_data_t *pLunarData) {
+    lunar_data_t lunar_data;
+    solar_to_lunar(year, month, day, &lunar_data);
 
+    //判断原日程是否闰月
+    int isleap = lunar_data.isleap;
+
+    lunar_data.year += addyear_cnt;
+    
+    __uint32_t bitdata = years_info[lunar_data.year - MIN_YEAR];
+    __int64_t leapindex = ltos_map[lunar_data.year-MIN_YEAR][0];//用于判断闰月情况
+    
+    //原日程是闰月且更新后的年也是该月闰月的情况
+    if ( isleap==1 && leapindex == lunar_data.month ){
+        //先计算闰月情况
+        int monthsize = getMonthSize(bitdata, lunar_data.month, 1);
+        int oldday = lunar_data.day;
+        if(oldday > monthsize){
+            oldday = monthsize;
+        }
+        triger_result->leapstamp = lunar_to_stamp(lunar_data.year, lunar_data.month, oldday, 1);
+        //计算非闰月清况
+        monthsize = getMonthSize(bitdata, lunar_data.month, 0);
+        if(lunar_data.day > monthsize){
+            lunar_data.day = monthsize;
+        }
+        triger_result->stamp = lunar_to_stamp(lunar_data.year, lunar_data.month, lunar_data.day, 0);
+        return 0;
+    } else { //只计算该非闰月的
+        int monthsize = getMonthSize(bitdata, lunar_data.month, 0);
+        if(lunar_data.day > monthsize){
+            lunar_data.day = monthsize;
+        }
+        triger_result->stamp = lunar_to_stamp(lunar_data.year, lunar_data.month, lunar_data.day, 0);
+        return 0;
+    }
+    
+    return 0;
+
+};
+
+
+__int64_t add_lunarmonth(int year, int month, int day, int addmonth_cnt) {
+    lunar_data_t lunar_data;
+    solar_to_lunar(year, month, day, &lunar_data);
+
+    __uint32_t bitdata = years_info[lunar_data.year - MIN_YEAR];
+    __int64_t leapindex = ltos_map[lunar_data.year-MIN_YEAR][0];//用于判断闰月情况
+    int monthcnt = 12; //记录该年月份数量
+    if ( leapindex > 0 ){
+        monthcnt = 13;
+    }
+    
+    lunar_data.month += addmonth_cnt;
+    
+    
+    return 0;
+   
+}
 
