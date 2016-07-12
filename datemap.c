@@ -1,6 +1,7 @@
 #include "datemap.h"
 #include <strings.h>
 #include <time.h>
+#include "php.h"
 
 #define NUM_OF_YEARS 150
 #define DAYTIME 86400  //一天多少秒
@@ -396,8 +397,8 @@ int lunar_to_solar(int year, int month, int day, int isleap, solar_data_t *pSola
 __int64_t lunar_to_stamp(int year, int month, int day, int isleap) {
     __int64_t timestamp = ltos_map[year-MIN_YEAR][getIndex(year, month, isleap)];
     timestamp += DAYTIME * (day - 1);
-        
-    return timestamp;
+    //由于本映射是映射出东8区的当天00:00:00时的时间戳
+    return timestamp+28800; 
 }
 
 
@@ -505,18 +506,44 @@ __int64_t add_lunaryear(int year, int month, int day, int addyear_cnt, triger_re
 __int64_t add_lunarmonth(int year, int month, int day, int addmonth_cnt) {
     lunar_data_t lunar_data;
     solar_to_lunar(year, month, day, &lunar_data);
-
-    __uint32_t bitdata = years_info[lunar_data.year - MIN_YEAR];
     __int64_t leapindex = ltos_map[lunar_data.year-MIN_YEAR][0];//用于判断闰月情况
-    int monthcnt = 12; //记录该年月份数量
-    if ( leapindex > 0 ){
-        monthcnt = 13;
+    if(lunar_data.isleap == 1 || leapindex > 0 && lunar_data.month > leapindex){
+        lunar_data.month += 1;
     }
-    
-    lunar_data.month += addmonth_cnt;
-    
-    
-    return 0;
-   
+    lunar_data.isleap = 0;
+    __uint32_t bitdata;
+    while(1) {
+        bitdata = years_info[lunar_data.year - MIN_YEAR];
+        leapindex = ltos_map[lunar_data.year-MIN_YEAR][0];//用于判断闰月情况
+        int monthcnt = 12; //记录该年月份数量
+        if ( leapindex > 0 ){
+            monthcnt = 13;
+        }
+        
+        lunar_data.month += addmonth_cnt;
+        if( lunar_data.month > monthcnt ){
+            addmonth_cnt = lunar_data.month - monthcnt - 1;
+            lunar_data.month = 1;
+            lunar_data.year += 1;
+        } else {//可以退出循环的情况
+            if( leapindex == 0 || lunar_data.month <= leapindex ) {//无闰月情况,和小于闰月情况
+                break;
+            }else if( leapindex == lunar_data.month - 1) {
+                lunar_data.isleap = 1;
+                lunar_data.month -= 1;
+            }else {
+                lunar_data.month -= 1;
+            }
+            break;
+        }
+    }
+ 
+    //判断该月的日是否超出情况
+    int monthsize = getMonthSize(bitdata, lunar_data.month, lunar_data.isleap);
+    if(lunar_data.day > monthsize ) {
+        lunar_data.day = monthsize;
+    } 
+//    php_printf("%d %d %d %d\n",lunar_data.year, lunar_data.month, lunar_data.day, lunar_data.isleap );
+    return lunar_to_stamp(lunar_data.year, lunar_data.month, lunar_data.day, lunar_data.isleap);
 }
 

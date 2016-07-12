@@ -505,9 +505,7 @@ void rule_constraint(zval *rv, rule_t *r, datetime_t after, datetime_t before, i
         } else {//农历版
             triger_result_t triger_result;
             triger_result.leapstamp = 0;
-            php_printf("Hello World!\n");
             while (rc < before && limit != 0) {//在范围内
-                php_printf("while!\n");
                 if (r->freq == MONTHLY) {
                     am += r->interval;      //月加一
                 } else if (r->freq == YEARLY) {
@@ -515,9 +513,7 @@ void rule_constraint(zval *rv, rule_t *r, datetime_t after, datetime_t before, i
                 }
     
                 datetime_t rcend = rc + duration;//本次循环的日程结束时间戳
-                php_printf("rc:%ld after:%ld rcend:%ld before:%ld\n", (long)rc, (long)after, (long)rcend, (long)before);
                 if (rc >= after && rcend <= before) {//日程在范围内，（日程的整个范围在里面）
-                        php_printf("add1!\n");
                     if (!tc_isexclude(&(r->exdates), rc)) {//是否期望去掉的
                         add_next_index_double(rv, dt_unix(rc)); //  set rc -> rcend
                         limit--;
@@ -539,14 +535,14 @@ void rule_constraint(zval *rv, rule_t *r, datetime_t after, datetime_t before, i
                 
                 if (r->freq == YEARLY ){
                     add_lunaryear(year, month, day, ay, &triger_result);
-                    php_printf("triger:%ld second:%ld\n", triger_result.stamp, dsecond);
                     triger_result.stamp += dsecond;
                     if( triger_result.leapstamp != 0){
                         triger_result.leapstamp += dsecond;
                     }
                     rc = sdt_unix(triger_result.stamp);
                 }else if(r->freq == MONTHLY) {
-
+                    __int64_t tr = add_lunarmonth(year, month, day, am);
+                    rc = sdt_unix(tr+dsecond);
                 }
     
             }
